@@ -1,4 +1,4 @@
-from fastapi import FastAPI,HTTPException,Path,Query,Body,Form,UploadFile,File,status,Response
+from fastapi import FastAPI,HTTPException,Path,Query,Body,Form,UploadFile,File,status,Response,Depends
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel,Field, AfterValidator
 from uuid import UUID
@@ -9,7 +9,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 
+
+
+
 from routers import login,todo
+
+
+
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+]
 
 
 
@@ -17,19 +29,54 @@ from routers import login,todo
 
 app = FastAPI()
 
+
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # restrict this in production
+    allow_origins=origins,  # restrict this in production
     allow_methods=["*"],
-    allow_headers=["*"],
-    
+    allow_headers=["*"]    
 )
 
 
 
+
+
 app.include_router(todo.router)
+app.include_router(login.router)
 
 # login
+
+
+# async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+#     credentials_exception = HTTPException(
+#         status_code=status.HTTP_401_UNAUTHORIZED,
+#         detail="Could not validate credentials",
+#         headers={"WWW-Authenticate": "Bearer"},
+#     )
+#     try:
+#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#         username = payload.get("sub")
+#         if username is None:
+#             raise credentials_exception
+#         token_data = TokenData(username=username)
+#     except InvalidTokenError:
+#         raise credentials_exception
+#     user = get_user(fake_users_db, username=token_data.username)
+#     if user is None:
+#         raise credentials_exception
+#     return user
+
+
+
+
+
+
+
+
+
+
 
 
 
