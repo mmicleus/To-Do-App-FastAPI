@@ -9,10 +9,28 @@ from models.loginModels import TokenData, User
 import jwt
 from jwt.exceptions import InvalidTokenError
 from auth import get_user
-from database.db import fake_users_db
+from database.db import fake_users_db,engine
+from sqlmodel import create_engine,Session
+from dotenv import dotenv_values
 
 
 forbidden_tasks = ["drink", "smoke", "gamble","drugs"]
+
+config = dotenv_values(".env")
+
+
+# ------------------------------------------ database dependencies ------------------------
+
+# sqlite_url = "sqlite:///database.db"
+
+
+
+def get_session():
+    with Session(engine) as session:
+        yield session
+
+
+SessionDep = Annotated[Session, Depends(get_session)]
 
 
 
@@ -32,9 +50,11 @@ class Pagination:
 
 
 
-def find_todo_by_id(todo_id: UUID) -> ToDoItem:
 
-    todo = todos.get(todo_id)
+
+def find_todo_by_id(todo_id: int,session:SessionDep) -> ToDoItem:
+
+    todo = session.get(ToDoItem,todo_id)
 
     if not todo:
         raise HTTPException(
@@ -45,7 +65,20 @@ def find_todo_by_id(todo_id: UUID) -> ToDoItem:
     return todo
 
 
-#login dependencies
+# def find_todo_by_id(todo_id: UUID) -> ToDoItem:
+
+#     todo = todos.get(todo_id)
+
+#     if not todo:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail="To-do item not found"
+#         )
+    
+#     return todo
+
+
+# ---------------------------------------- login dependencies ----------------------------------
 
 ALGORITHM = "HS256"
 SECRET_KEY = "0c7a2c1581781638569e7e947e5f52a8ef1715cb825d8672d7a96fdd065da163"
@@ -84,6 +117,14 @@ current_user: Annotated[User, Depends(get_current_user)],
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+
+
+
+
+
+
 
 
 

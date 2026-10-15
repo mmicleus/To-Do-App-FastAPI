@@ -6,8 +6,11 @@ import uuid
 from typing import Annotated, Optional
 from enum import Enum
 from fastapi.middleware.cors import CORSMiddleware
-
-
+from sqlmodel import SQLModel,create_engine
+from dotenv import dotenv_values
+from models.todoModels import ToDoItem,ToDoBase
+from database.db import engine
+from contextlib import asynccontextmanager
 
 
 
@@ -27,7 +30,16 @@ origins = [
 
 
 
-app = FastAPI()
+#this will run before application startup and after application shutdown
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    SQLModel.metadata.create_all(engine)
+    yield
+
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 
