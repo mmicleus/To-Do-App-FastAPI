@@ -1,4 +1,4 @@
-from fastapi import APIRouter,Depends,HTTPException,status,Form
+from fastapi import APIRouter,Depends,HTTPException,status,Form,Response
 from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -8,6 +8,8 @@ from models.loginModels import User,UserSignUp,UserInDB,UserPublic,Token,TokenDa
 from auth import authenticate_user,create_access_token,get_password_hash
 from database.db import fake_users_db,SessionDep
 from datetime import timedelta
+from sqlmodel import select
+from sqlalchemy.exc import IntegrityError
 
 
 
@@ -55,10 +57,16 @@ form_data: Annotated[OAuth2PasswordRequestForm, Depends()],session:SessionDep) -
 
 
 
-@router.post("/sign-up",response_model=UserPublic)
+@router.post("/sign-up",response_model=UserPublic,status_code=status.HTTP_201_CREATED)
 async def signup(
     signup_data:Annotated[UserSignUp,Form()],session:SessionDep
 ):
+
+    existing_user = session.exec(select(UserInDB).where(UserInDB.username == signup_data.username)).first()
+
+    if existing_user:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="username already registered")
+
 
     password = get_password_hash(signup_data.password)
 
@@ -66,8 +74,17 @@ async def signup(
 
 
     session.add(user)
-    session.commit()
+
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="username already registered")
+        
+
+    
     session.refresh(user)
+
 
 
     return user
