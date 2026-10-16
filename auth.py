@@ -3,6 +3,10 @@ from models.loginModels import UserInDB
 from datetime import datetime, time, timedelta,timezone
 import jwt
 from dotenv import dotenv_values
+from database.db import SessionDep
+from sqlmodel import select
+from fastapi import HTTPException,status
+from typing import Optional
 
 
 password_hash = PasswordHash.recommended()
@@ -13,9 +17,14 @@ config = dotenv_values(".env")
 
 
 
-def get_user(db, username: str):
-    if username in db:
-        return UserInDB(**db[username])
+def get_user(username: str,session:SessionDep) -> Optional[UserInDB]:
+
+    user = session.exec(select(UserInDB).where(UserInDB.username == username)).first()
+
+   
+    return user
+
+
 
 def verify_password(plain_password, hashed_password):
     return password_hash.verify(plain_password, hashed_password)
@@ -25,8 +34,8 @@ def get_password_hash(password):
     return password_hash.hash(password)
 
 
-def authenticate_user(db, username: str, password: str):
-    user = get_user(db, username)
+def authenticate_user(username: str, password: str,session):
+    user = get_user(username,session)
     if not user:
         verify_password(password, DUMMY_HASH) # similar timing: blocks username enumeration
         return False

@@ -1,12 +1,12 @@
-from fastapi import APIRouter,Depends,HTTPException,status
+from fastapi import APIRouter,Depends,HTTPException,status,Form
 from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
 
 
 from dependencies import get_current_active_user
-from models.loginModels import User,Token,TokenData
-from auth import authenticate_user,create_access_token
-from database.db import fake_users_db
+from models.loginModels import User,UserSignUp,UserInDB,UserPublic,Token,TokenData
+from auth import authenticate_user,create_access_token,get_password_hash
+from database.db import fake_users_db,SessionDep
 from datetime import timedelta
 
 
@@ -26,6 +26,8 @@ current_user: Annotated[User, Depends(get_current_active_user)],
 
 
 
+# to work on this
+
 @router.get("/users/me/items/")
 async def read_own_items(
     current_user: Annotated[User, Depends(get_current_active_user)],
@@ -36,9 +38,8 @@ async def read_own_items(
 
 @router.post("/token")
 async def login_for_access_token(
-form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-) -> Token:
-    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+form_data: Annotated[OAuth2PasswordRequestForm, Depends()],session:SessionDep) -> Token:
+    user = authenticate_user(form_data.username, form_data.password,session)
     if not user:
         raise HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -51,3 +52,25 @@ form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     )
 
     return Token(access_token=access_token, token_type="bearer")
+
+
+
+@router.post("/sign-up",response_model=UserPublic)
+async def signup(
+    signup_data:Annotated[UserSignUp,Form()],session:SessionDep
+):
+
+    password = get_password_hash(signup_data.password)
+
+    user:UserInDB = UserInDB.model_validate(signup_data,update={"hashed_password":password})
+
+
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+
+    return user
+    
+
+    

@@ -9,7 +9,7 @@ from models.loginModels import TokenData, User
 import jwt
 from jwt.exceptions import InvalidTokenError
 from auth import get_user
-from database.db import fake_users_db,engine
+from database.db import fake_users_db,engine,SessionDep
 from sqlmodel import create_engine,Session
 from dotenv import dotenv_values
 
@@ -25,12 +25,12 @@ config = dotenv_values(".env")
 
 
 
-def get_session():
-    with Session(engine) as session:
-        yield session
+# def get_session():
+#     with Session(engine) as session:
+#         yield session
 
 
-SessionDep = Annotated[Session, Depends(get_session)]
+# SessionDep = Annotated[Session, Depends(get_session)]
 
 
 
@@ -90,7 +90,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+
+
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],session:SessionDep):
     credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
     detail="Could not validate credentials",
@@ -104,7 +106,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         token_data = TokenData(username=username)
     except InvalidTokenError:
         raise credentials_exception
-    user = get_user(fake_users_db, username=token_data.username)
+    user = get_user(token_data.username,session)
     if user is None:
         raise credentials_exception
 
@@ -112,7 +114,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
 
 
 async def get_current_active_user(
-current_user: Annotated[User, Depends(get_current_user)],
+current_user: Annotated[User, Depends(get_current_user)]
 ):
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")

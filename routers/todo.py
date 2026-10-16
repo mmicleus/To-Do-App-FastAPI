@@ -3,8 +3,8 @@ from typing import Annotated, Optional
 import uuid
 from uuid import UUID
 from pydantic import AfterValidator
-from dependencies import check_todo_data,Pagination,find_todo_by_id,get_current_active_user,SessionDep
-from database.db import todos
+from dependencies import check_todo_data,Pagination,find_todo_by_id,get_current_active_user
+from database.db import todos,SessionDep
 
 
 from models.todoModels import Urgency, ToDoBase,ToDoCreate,ToDoUpdate,ToDoItem
