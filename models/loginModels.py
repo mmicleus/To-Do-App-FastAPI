@@ -1,5 +1,7 @@
 from pydantic import BaseModel
-from sqlmodel import SQLModel,Field
+from sqlmodel import SQLModel,Field, Relationship
+# from models.todoModels import ToDoItem
+
 
 
 
@@ -23,6 +25,7 @@ class UserPublic(User):
 class UserInDB(User,table=True):
     id: int | None = Field(default=None,primary_key=True)
     hashed_password: str # never expose this in responses
+    todos:list["ToDoItem"] = Relationship(back_populates="user",cascade_delete=True)
 
 
 

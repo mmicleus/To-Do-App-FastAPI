@@ -3,17 +3,19 @@ from typing import Annotated, Optional
 import uuid
 from uuid import UUID
 from pydantic import AfterValidator
-from dependencies import check_todo_data,Pagination,find_todo_by_id,get_current_active_user
+from dependencies import check_todo_data,Pagination,find_todo_by_id,get_current_active_user,ActiveUserDep
 from database.db import todos,SessionDep
 
 
 from models.todoModels import Urgency, ToDoBase,ToDoCreate,ToDoUpdate,ToDoItem
-from models.loginModels import User
+from models.loginModels import User,UserInDB
 from sqlmodel import select
+from auth import get_user
 
 
-router = APIRouter(prefix="/todos",dependencies=[Depends(get_current_active_user)])
+# router = APIRouter(prefix="/todos",dependencies=[Depends(get_current_active_user)])
 
+router = APIRouter(prefix="/todos")
 
 
 forbidden_tasks = ["drink", "smoke", "gamble","drugs"]
@@ -21,20 +23,23 @@ forbidden_tasks = ["drink", "smoke", "gamble","drugs"]
 
 
 
-@router.post("/",tags=["CRUD"])
-async def create_todo(todo: Annotated[ToDoCreate,Depends(check_todo_data)],session:SessionDep,response:Response) -> ToDoItem:
+@router.post("/",tags=["CRUD"],status_code=status.HTTP_201_CREATED)
+async def create_todo(todo: Annotated[ToDoCreate,Depends(check_todo_data)],session:SessionDep,user:ActiveUserDep,response:Response) -> ToDoItem:
 
     #generate a random id for the new to-do item
     # new_id = uuid.uuid4()
 
-    todoItem = ToDoItem.model_validate(todo)
     
 
-    session.add(todoItem)
+    todoItem = ToDoItem.model_validate(todo)
+
+    user:UserInDB = get_user(user.username,session)
+
+    user.todos.append(todoItem)
+
+    session.add(user)
     session.commit()
     session.refresh(todoItem)
-
-    # todos[new_id] = todoItem
 
     
     response.headers["Location"] = f"/todos/{todoItem.id}"
@@ -46,11 +51,19 @@ async def create_todo(todo: Annotated[ToDoCreate,Depends(check_todo_data)],sessi
 
 
 @router.get("/",response_model=list[ToDoItem],tags=["CRUD"])
-async def get_all_todos(pagination:Annotated[Pagination,Depends()],session:SessionDep):
+async def get_all_todos(pagination:Annotated[Pagination,Depends()],session:SessionDep,user:ActiveUserDep):
 
-    return session.exec(select(ToDoItem).offset(pagination.skip).limit(pagination.limit)).all()
+
+    user:UserInDB = get_user(user.username,session)
+
+    # ---------------------- implement database pagination instead ------------------------------
+    user_todos = user.todos
+
+    return user_todos[pagination.skip:pagination.skip + pagination.limit]
+
+
+    # return session.exec(select(ToDoItem).offset(pagination.skip).limit(pagination.limit)).all()
     
-    # return list(todos.values())[pagination.skip:pagination.skip+pagination.limit]
 
 
 
