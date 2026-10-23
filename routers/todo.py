@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 import uuid
 from uuid import UUID
 from pydantic import AfterValidator
-from dependencies import check_todo_data,Pagination,find_todo_by_id,get_current_active_user,ActiveUserDep
+from dependencies import check_todo_data,Pagination,find_todo_by_id,get_current_active_user,ActiveUserDep,FindToDoByIdDep,FindUserToDoByIdDep,ValidateToDoDep,GetUserToDosWithPaginationDep
 from database.db import todos,SessionDep
 
 
@@ -24,16 +24,13 @@ forbidden_tasks = ["drink", "smoke", "gamble","drugs"]
 
 
 @router.post("/",tags=["CRUD"],status_code=status.HTTP_201_CREATED)
-async def create_todo(todo: Annotated[ToDoCreate,Depends(check_todo_data)],session:SessionDep,user:ActiveUserDep,response:Response) -> ToDoItem:
+async def create_todo(todo: ValidateToDoDep,session:SessionDep,user:ActiveUserDep,response:Response) -> ToDoItem:
 
-    #generate a random id for the new to-do item
-    # new_id = uuid.uuid4()
-
-    
 
     todoItem = ToDoItem.model_validate(todo)
 
-    user:UserInDB = get_user(user.username,session)
+
+# implement helper function for below
 
     user.todos.append(todoItem)
 
@@ -51,25 +48,18 @@ async def create_todo(todo: Annotated[ToDoCreate,Depends(check_todo_data)],sessi
 
 
 @router.get("/",response_model=list[ToDoItem],tags=["CRUD"])
-async def get_all_todos(pagination:Annotated[Pagination,Depends()],session:SessionDep,user:ActiveUserDep):
+async def get_all_todos(todos:GetUserToDosWithPaginationDep):
+
+   
+    # user_todos = session.exec(select(ToDoItem).where(ToDoItem.user_id == user.id).offset(pagination.skip).limit(pagination.limit)).all()
+   
+
+    return todos
 
 
-    user:UserInDB = get_user(user.username,session)
-
-    # ---------------------- implement database pagination instead ------------------------------
-    user_todos = user.todos
-
-    return user_todos[pagination.skip:pagination.skip + pagination.limit]
-
-
-    # return session.exec(select(ToDoItem).offset(pagination.skip).limit(pagination.limit)).all()
     
-
-
-
-
 @router.get("/{id}",response_model=ToDoItem,tags=["CRUD"])
-async def get_todo(id: int,session:SessionDep):
+async def get_todo(todo:FindUserToDoByIdDep):
 
     # todo = find_todo_by_id(id)
 
@@ -79,14 +69,35 @@ async def get_todo(id: int,session:SessionDep):
     # if todo.urgency == Urgency.HIGH:
     #     print("This is a high urgency task!")
 
-    todo = session.get(ToDoItem,id)
 
-    if not todo:
-        raise HTTPException(status_code=404, detail="To-do item not found")
 
+    # if todo.user_id != user.id:
+    #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Forbidden from accessing this item!")
 
     
     return todo
+
+
+
+
+# @router.get("/{id}",response_model=ToDoItem,tags=["CRUD"])
+# async def get_todo(todo:FindToDoByIdDep,session:SessionDep,user:ActiveUserDep):
+
+#     # todo = find_todo_by_id(id)
+
+#     # if not todo:
+#     #     raise HTTPException(status_code=404, detail="To-do item not found")
+
+#     # if todo.urgency == Urgency.HIGH:
+#     #     print("This is a high urgency task!")
+
+
+
+#     if todo.user_id != user.id:
+#         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Forbidden from accessing this item!")
+
+    
+#     return todo
 
 
 
@@ -95,26 +106,27 @@ async def get_todo(id: int,session:SessionDep):
 
 
 @router.patch("/{id}", response_model=ToDoItem,tags=["CRUD"])
-async def update_todo(updated_todo: ToDoUpdate, dbToDo:Annotated[ToDoItem,Depends(find_todo_by_id)],session:SessionDep):
+async def update_todo(updated_todo: ToDoUpdate, todo:FindUserToDoByIdDep,session:SessionDep,user:ActiveUserDep):
+
 
     
-    dbToDo.sqlmodel_update(updated_todo.model_dump(exclude_unset=True))
-    session.add(dbToDo)
+    todo.sqlmodel_update(updated_todo.model_dump(exclude_unset=True))
+    session.add(todo)
     session.commit()
-    session.refresh(dbToDo)
+    session.refresh(todo)
   
 
-    return dbToDo
+    return todo
 
 
 
 
 
 @router.delete("/{id}",tags=["CRUD"],status_code=status.HTTP_204_NO_CONTENT)
-async def delete_todo(dbToDo:Annotated[ToDoItem,Depends(find_todo_by_id)],session:SessionDep) -> Response:
+async def delete_todo(todo:FindToDoByIdDep,user:ActiveUserDep,session:SessionDep) -> Response:
 
 
-    session.delete(dbToDo)
+    session.delete(todo)
     session.commit()
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
