@@ -7,12 +7,12 @@ from database.db import SessionDep
 from sqlmodel import select
 from fastapi import HTTPException,status
 from typing import Optional
-
+from config import settings
 
 password_hash = PasswordHash.recommended()
 DUMMY_HASH = password_hash.hash("dummypassword")
 
-config = dotenv_values(".env")
+
 
 
 
@@ -50,4 +50,4 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, config["SECRET_KEY"], algorithm=config["ALGORITHM"])
+    return jwt.encode(to_encode, settings.secret_key.get_secret_value(), algorithm=settings.algorithm)

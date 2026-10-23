@@ -7,7 +7,7 @@ from dependencies import check_todo_data,Pagination,find_todo_by_id,get_current_
 from database.db import todos,SessionDep
 
 
-from models.todoModels import Urgency, ToDoBase,ToDoCreate,ToDoUpdate,ToDoItem
+from models.todoModels import Urgency, ToDoBase,ToDoCreate,ToDoUpdate,ToDoItem,ToDoPublic
 from models.loginModels import User,UserInDB
 from sqlmodel import select
 from auth import get_user
@@ -23,14 +23,12 @@ forbidden_tasks = ["drink", "smoke", "gamble","drugs"]
 
 
 
-@router.post("/",tags=["CRUD"],status_code=status.HTTP_201_CREATED)
-async def create_todo(todo: ValidateToDoDep,session:SessionDep,user:ActiveUserDep,response:Response) -> ToDoItem:
+@router.post("/",tags=["CRUD"],status_code=status.HTTP_201_CREATED,response_model=ToDoPublic)
+def create_todo(todo: ValidateToDoDep,session:SessionDep,user:ActiveUserDep,response:Response) -> ToDoItem:
 
 
-    todoItem = ToDoItem.model_validate(todo)
+    todoItem = ToDoItem.model_validate(todo,update={"user_id":user.id})
 
-
-# implement helper function for below
 
     user.todos.append(todoItem)
 
@@ -47,19 +45,16 @@ async def create_todo(todo: ValidateToDoDep,session:SessionDep,user:ActiveUserDe
 
 
 
-@router.get("/",response_model=list[ToDoItem],tags=["CRUD"])
-async def get_all_todos(todos:GetUserToDosWithPaginationDep):
+@router.get("/",tags=["CRUD"],response_model=list[ToDoPublic])
+def get_all_todos(todos:GetUserToDosWithPaginationDep) -> list[ToDoItem]:
 
-   
-    # user_todos = session.exec(select(ToDoItem).where(ToDoItem.user_id == user.id).offset(pagination.skip).limit(pagination.limit)).all()
-   
 
     return todos
 
 
     
-@router.get("/{id}",response_model=ToDoItem,tags=["CRUD"])
-async def get_todo(todo:FindUserToDoByIdDep):
+@router.get("/{id}",response_model=ToDoPublic,tags=["CRUD"])
+def get_todo(todo:FindUserToDoByIdDep) -> ToDoItem:
 
     # todo = find_todo_by_id(id)
 
@@ -80,37 +75,33 @@ async def get_todo(todo:FindUserToDoByIdDep):
 
 
 
-# @router.get("/{id}",response_model=ToDoItem,tags=["CRUD"])
-# async def get_todo(todo:FindToDoByIdDep,session:SessionDep,user:ActiveUserDep):
-
-#     # todo = find_todo_by_id(id)
-
-#     # if not todo:
-#     #     raise HTTPException(status_code=404, detail="To-do item not found")
-
-#     # if todo.urgency == Urgency.HIGH:
-#     #     print("This is a high urgency task!")
-
-
-
-#     if todo.user_id != user.id:
-#         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Forbidden from accessing this item!")
-
-    
-#     return todo
-
 
 
 
  
 
 
-@router.patch("/{id}", response_model=ToDoItem,tags=["CRUD"])
-async def update_todo(updated_todo: ToDoUpdate, todo:FindUserToDoByIdDep,session:SessionDep,user:ActiveUserDep):
+@router.patch("/{id}",tags=["CRUD"],response_model=ToDoPublic)
+def update_todo(updated_todo: ToDoUpdate, todo:FindUserToDoByIdDep,session:SessionDep,user:ActiveUserDep) -> ToDoItem:
 
+    updated_fields = updated_todo.model_dump(exclude_unset=True)
+
+    if "title" in updated_fields and updated_fields["title"] is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="field 'title' cannot be NULL")
+        # del updated_fields["title"]
+
+    if  "completed" in updated_fields and updated_fields["completed"] is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="field 'completed' cannot be NULL")
+        # del updated_fields["completed"]
+
+
+    if  "urgency" in updated_fields and updated_fields["urgency"] is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="field 'urgency' cannot be NULL")
+        # del updated_fields["urgency"]
 
     
-    todo.sqlmodel_update(updated_todo.model_dump(exclude_unset=True))
+    
+    todo.sqlmodel_update(updated_fields)
     session.add(todo)
     session.commit()
     session.refresh(todo)
@@ -123,7 +114,7 @@ async def update_todo(updated_todo: ToDoUpdate, todo:FindUserToDoByIdDep,session
 
 
 @router.delete("/{id}",tags=["CRUD"],status_code=status.HTTP_204_NO_CONTENT)
-async def delete_todo(todo:FindToDoByIdDep,user:ActiveUserDep,session:SessionDep) -> Response:
+def delete_todo(todo:FindUserToDoByIdDep,user:ActiveUserDep,session:SessionDep) -> Response:
 
 
     session.delete(todo)

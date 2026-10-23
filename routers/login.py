@@ -20,26 +20,19 @@ router = APIRouter()
 
 
 
-@router.get("/users/me/")
-async def read_users_me(
+@router.get("/users/me/",response_model=UserPublic)
+def read_users_me(
 current_user: Annotated[User, Depends(get_current_active_user)],
-) -> User:
+):
     return current_user
 
 
 
-# to work on this
-
-@router.get("/users/me/items/")
-async def read_own_items(
-    current_user: Annotated[User, Depends(get_current_active_user)],
-    ):
-    return [{"item_id": "Foo", "owner": current_user.username}]
 
 
 
 @router.post("/token")
-async def login_for_access_token(
+def login_for_access_token(
 form_data: Annotated[OAuth2PasswordRequestForm, Depends()],session:SessionDep) -> Token:
     user = authenticate_user(form_data.username, form_data.password,session)
     if not user:
@@ -58,8 +51,8 @@ form_data: Annotated[OAuth2PasswordRequestForm, Depends()],session:SessionDep) -
 
 
 @router.post("/sign-up",response_model=UserPublic,status_code=status.HTTP_201_CREATED)
-async def signup(
-    signup_data:Annotated[UserSignUp,Form()],session:SessionDep
+def signup(
+    signup_data:UserSignUp,session:SessionDep
 ):
 
     existing_user = session.exec(select(UserInDB).where(UserInDB.username == signup_data.username)).first()

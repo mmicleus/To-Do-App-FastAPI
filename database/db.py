@@ -2,9 +2,9 @@ from sqlmodel import create_engine,Session
 from dotenv import dotenv_values
 from typing import Annotated
 from fastapi import Depends
+from config import settings
+from sqlalchemy import event
 
-
-config = dotenv_values(".env")
 
 todos = {}
 
@@ -27,4 +27,12 @@ def get_session():
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
-engine = create_engine(config["SQLITE_URL"], connect_args={"check_same_thread": False})
+engine = create_engine(settings.sqlite_url, connect_args={"check_same_thread": False})
+
+
+# The hook runs whenever SQLAlchemy opens a SQLite connection, enabling foreign-key checks and ON DELETE CASCADE for that connection.
+@event.listens_for(engine, "connect")
+def enable_sqlite_foreign_keys(connection, _):
+    cursor = connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()

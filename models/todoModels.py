@@ -24,16 +24,21 @@ class ToDoBase(SQLModel):
 
 class ToDoItem(ToDoBase, table=True):
     id: int | None = Field(default=None,primary_key=True)
-    user_id: int| None = Field(default=None,foreign_key="userindb.id",ondelete="CASCADE")
+    user_id: int = Field(foreign_key="userindb.id",ondelete="CASCADE")
     user:UserInDB = Relationship(back_populates="todos")
+    # user_id: int| None = Field(default=None,foreign_key="userindb.id",ondelete="CASCADE")
+    # user:UserInDB | None = Relationship(back_populates="todos")
 
 
 
 class ToDoCreate(ToDoBase):
     pass
 
+class ToDoPublic(ToDoBase):
+    id: int | None
+
 class ToDoUpdate(SQLModel):
-    title: str = Field(description="Title of the to-do item", min_length=1, max_length=20)
+    title: str | None  = Field(default = None,description="Title of the to-do item", min_length=1, max_length=20)
     description: str| None = Field(default=None,description="Description of the to-do item", max_length=50)
     completed: bool | None = None
     urgency: Urgency | None = None

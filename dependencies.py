@@ -11,12 +11,13 @@ from jwt.exceptions import InvalidTokenError
 from auth import get_user
 from database.db import fake_users_db,engine,SessionDep
 from sqlmodel import create_engine,Session,select
-from dotenv import dotenv_values
+from config import settings
+
 
 
 forbidden_tasks = ["drink", "smoke", "gamble","drugs"]
 
-config = dotenv_values(".env")
+
 
 
 # ------------------------------------------ database dependencies ------------------------
@@ -74,8 +75,12 @@ def find_todo_by_id(id: int,session:SessionDep) -> ToDoItem:
 
 # ---------------------------------------- login dependencies ----------------------------------
 
-ALGORITHM = "HS256"
-SECRET_KEY = "0c7a2c1581781638569e7e947e5f52a8ef1715cb825d8672d7a96fdd065da163"
+
+
+
+
+
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -86,14 +91,14 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],session:SessionDep):
+def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],session:SessionDep):
     credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
     detail="Could not validate credentials",
     headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.secret_key.get_secret_value(), algorithms=[settings.algorithm])
         username = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -107,11 +112,11 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],session
     return user
 
 
-async def get_current_active_user(
+def get_current_active_user(
 current_user: Annotated[UserInDB, Depends(get_current_user)]
 ):
     if current_user.disabled:
-        raise HTTPException(status_code=400, detail="Inactive user")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
     return current_user
 
 
@@ -129,13 +134,14 @@ def get_userTodo_by_id(user:ActiveUserDep,todo:FindToDoByIdDep) -> ToDoItem:
 
     
     if todo.user_id != user.id:
+            
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Forbidden from accessing this item!")
 
     return todo
 
 # gets the current active user using the "ActiveUserDep" dependency injection 
 # fetches all the current active user's to do items within the limits set by pagination
-def getUserToDosWithPagination(user:ActiveUserDep,pagination: Pagination, session:SessionDep) -> list[ToDoItem]:
+def getUserToDosWithPagination(user:ActiveUserDep,pagination: Annotated[Pagination,Depends()], session:SessionDep) -> list[ToDoItem]:
 
     user_todos = session.exec(select(ToDoItem).where(ToDoItem.user_id == user.id).offset(pagination.skip).limit(pagination.limit)).all()
     return user_todos
@@ -152,7 +158,7 @@ ValidateToDoDep = Annotated[ToDoCreate,Depends(check_todo_data)]
 
 
 # gets the current active user using the "ActiveUserDep" dependency injection and fetches all the current active user's to do items within the limits set by pagination
-GetUserToDosWithPaginationDep = Annotated[list[ToDoItem],getUserToDosWithPagination]
+GetUserToDosWithPaginationDep = Annotated[list[ToDoItem],Depends(getUserToDosWithPagination)]
 
     
 
