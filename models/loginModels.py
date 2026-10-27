@@ -1,8 +1,14 @@
 from pydantic import BaseModel
-from sqlmodel import SQLModel,Field, Relationship
+from sqlmodel import SQLModel,Field, Relationship,Column,DateTime
+from enum import Enum
+from datetime import datetime, timezone
 # from models.todoModels import ToDoItem
 
 
+
+class Activity(Enum):
+    SignUp = 1
+    SignIn = 2
 
 
 class User(SQLModel):
@@ -36,5 +42,26 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: str | None = None
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+# used to log user sign ups and sign ins
+
+class ActivityLog(SQLModel,table=True):
+    id: int | None = Field(default=None,primary_key=True, description="unique activity ID")
+    user_id : int = Field(foreign_key="userindb.id")
+    activity : Activity
+    occured_at : datetime = Field(
+        #will set the value of occured_at on object creation by calling utc_now()
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+
+
+
+
+
+
 
 

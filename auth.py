@@ -8,6 +8,7 @@ from sqlmodel import select
 from fastapi import HTTPException,status
 from typing import Optional
 from config import settings
+from models.loginModels import User,UserSignUp,UserInDB,UserPublic,Token,TokenData,ActivityLog,Activity
 
 password_hash = PasswordHash.recommended()
 DUMMY_HASH = password_hash.hash("dummypassword")
@@ -51,3 +52,13 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.secret_key.get_secret_value(), algorithm=settings.algorithm)
+
+
+
+def log_activity(user:UserInDB,act:Activity,session:SessionDep):
+
+    activityLog:ActivityLog = ActivityLog(user_id=user.id,activity=act)
+
+    session.add(activityLog)
+    session.commit()
+    
