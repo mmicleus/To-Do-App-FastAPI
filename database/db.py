@@ -27,7 +27,7 @@ def get_session():
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
-engine = create_engine(settings.sqlite_url, connect_args={"check_same_thread": False})
+engine = create_engine(settings.SQLITE_URL, connect_args={"check_same_thread": False})
 
 
 # The hook runs whenever SQLAlchemy opens a SQLite connection, enabling foreign-key checks and ON DELETE CASCADE for that connection.

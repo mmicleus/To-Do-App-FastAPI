@@ -1,8 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,EmailStr,field_validator
 from sqlmodel import SQLModel,Field, Relationship,Column,DateTime
 from enum import Enum
 from datetime import datetime, timezone
 # from models.todoModels import ToDoItem
+import string
 
 
 
@@ -13,13 +14,39 @@ class Activity(Enum):
 
 class User(SQLModel):
     username: str = Field(index=True,unique=True,min_length=4, max_length=20)
-    email: str | None = None
-    full_name: str | None = Field(index=True, min_length=4, max_length=20)
+    email: EmailStr = Field(index=True,unique=True)
     disabled: bool | None = None
+
+    @field_validator("username")
+    @classmethod
+    def check_username(cls, v: str) -> str:
+        if not (4 <= len(v) <= 20):
+            raise ValueError("Username must be between 4 and 20 characters long")
+        return v
+
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        return v.lower()
+
+
 
 
 class UserSignUp(User):
     password:str = Field(min_length=6,max_length=30)
+
+
+    @field_validator("password")
+    @classmethod
+    def check_password(cls, v: str) -> str:
+        if not (8 <= len(v) <= 30):
+            raise ValueError("Password must be between 8 and 30 characters long")
+        if not any(c in string.punctuation for c in v):
+            raise ValueError("Password must contain at least one special character")
+        if not any(c in string.ascii_letters for c in v):
+            raise ValueError("Password must contain at least one letter")
+        return v
 
 
     

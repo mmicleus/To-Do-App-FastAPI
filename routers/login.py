@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
 
 
-from dependencies import get_current_active_user
+from dependencies import get_current_active_user,ValidateSigUpDataDep
 from models.loginModels import User,UserSignUp,UserInDB,UserPublic,Token,TokenData,ActivityLog,Activity
 from auth import authenticate_user,create_access_token,get_password_hash
 from database.db import fake_users_db,SessionDep
@@ -70,14 +70,14 @@ form_data: Annotated[OAuth2PasswordRequestForm, Depends()],background_tasks:Back
 
 @router.post("/sign-up",response_model=UserPublic,status_code=status.HTTP_201_CREATED)
 def signup(
-    signup_data:UserSignUp,session:SessionDep,
+    signup_data:ValidateSigUpDataDep,session:SessionDep,
     background_tasks:BackgroundTasks
 ):
 
-    existing_user = session.exec(select(UserInDB).where(UserInDB.username == signup_data.username)).first()
+    # existing_user = session.exec(select(UserInDB).where(UserInDB.username == signup_data.username)).first()
 
-    if existing_user:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="username already registered")
+    # if existing_user:
+        # raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="username already registered")
 
 
     password = get_password_hash(signup_data.password)

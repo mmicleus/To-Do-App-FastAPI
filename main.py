@@ -6,11 +6,12 @@ import uuid
 from typing import Annotated, Optional
 from enum import Enum
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlmodel import SQLModel,create_engine
 from dotenv import dotenv_values
-from models.todoModels import ToDoItem,ToDoBase
 from database.db import engine
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 
 
@@ -25,6 +26,7 @@ origins = [
     "http://localhost",
     "http://localhost:8080",
 ]
+
 
 
 
@@ -57,6 +59,8 @@ app.add_middleware(
 
 app.include_router(todo.router)
 app.include_router(login.router)
+app.frontend("/",directory="frontend")
+# app.mount("/", StaticFiles(directory=Path(__file__).parent / "frontend", html=True), name="frontend")
 
 # login
 
@@ -142,5 +146,4 @@ class FormData(BaseModel):
 
 
     
-
 

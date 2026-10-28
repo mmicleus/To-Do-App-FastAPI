@@ -5,13 +5,15 @@ from uuid import UUID
 from database.db import todos
 from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 from models.todoModels import ToDoCreate,ToDoItem
-from models.loginModels import TokenData, User,UserInDB
+from models.loginModels import TokenData, User,UserInDB,UserSignUp
 import jwt
 from jwt.exceptions import InvalidTokenError
 from auth import get_user
 from database.db import fake_users_db,engine,SessionDep
 from sqlmodel import create_engine,Session,select
 from config import settings
+import string
+from pydantic import EmailStr
 
 
 
@@ -66,20 +68,68 @@ def find_todo_by_id(id: int,session:SessionDep) -> ToDoItem:
     return todo
 
 
+# def validate_password(password:str):
+
+#     SPECIAL_CHARS = set(string.punctuation)
+#     LETTERS = set(string.ascii_letters)
+
+#     if not (6 <= len(password) <= 30):
+#         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,detail="Password must be between 6 and 30 characters long")
+
+    
+
+#     if not any(ch in SPECIAL_CHARS for ch in password):
+#         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,detail="Password must contain at least one special character")
+
+#     if not any(ch in LETTERS for ch in password):
+#         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,detail="Password must contain at least one letter")
+
+
+#     return True
+
+
+def validate_email(email:EmailStr,session:SessionDep):
+
+    
+    duplicate_email = session.exec(select(UserInDB).where(UserInDB.email == str(email).lower())).first()
+
+
+    if duplicate_email:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="an account with this email already exists")
+
+
+    
+    return email
 
 
 
 
+def validate_username(username:str,session:SessionDep):
+
+    duplicate_username = session.exec(select(UserInDB).where(UserInDB.username == username)).first()
 
 
+    if duplicate_username:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="username already taken")
+
+    return username
+
+
+
+    
+
+
+
+def validateSignUpData(data:UserSignUp,session:SessionDep):
+
+
+    validate_email(data.email,session)
+
+    validate_username(data.username,session)
+
+    return data
 
 # ---------------------------------------- login dependencies ----------------------------------
-
-
-
-
-
-
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -98,7 +148,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],session:Sessi
     headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, settings.secret_key.get_secret_value(), algorithms=[settings.algorithm])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -161,7 +211,7 @@ ValidateToDoDep = Annotated[ToDoCreate,Depends(check_todo_data)]
 GetUserToDosWithPaginationDep = Annotated[list[ToDoItem],Depends(getUserToDosWithPagination)]
 
     
-
+ValidateSigUpDataDep = Annotated[UserSignUp,Depends(validateSignUpData)]
 
 
 
