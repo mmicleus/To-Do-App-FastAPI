@@ -2,7 +2,7 @@
 
 A personal task manager with a FastAPI backend and a lightweight HTML, CSS, and JavaScript frontend. Create an account to organise, prioritise, and track your own tasks.
 
-**Demo:** No hosted demo is configured yet. Run locally to try the app.
+**Demo:** https://dailytodos.fastapicloud.dev
 
 **API docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) after starting the server.
 
