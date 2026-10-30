@@ -8,6 +8,10 @@ A personal task manager with a FastAPI backend and a lightweight HTML, CSS, and 
 
 **API docs:** [https://dailytodos.fastapicloud.dev/docs](http://127.0.0.1:8000/docs) after starting the server.
 
+## Notes
+The frontend was generated with AI to provide a simple UI for
+the API and is not the focus of this project.
+
 ## Features
 
 - Account signup and sign-in using JWT bearer tokens.
@@ -22,7 +26,7 @@ A personal task manager with a FastAPI backend and a lightweight HTML, CSS, and 
 - **Backend:** Python 3.13+, FastAPI, Pydantic, SQLModel, Supabase
 - **Database:** PostgreSQL
 - **Authentication:** OAuth2 password flow, JWT, Argon2
-- **Frontend:** HTML, CSS, and vanilla JavaScript
+- **Frontend:** HTML, CSS, and vanilla JavaScript (AI generated)
 - **Dependency management:** [uv](https://docs.astral.sh/uv/)
 - **Tests:** pytest
 
