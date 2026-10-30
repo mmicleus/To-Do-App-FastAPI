@@ -6,7 +6,7 @@ A personal task manager with a FastAPI backend and a lightweight HTML, CSS, and 
 
 **Demo:** https://dailytodos.fastapicloud.dev
 
-**API docs:** [https://dailytodos.fastapicloud.dev/docs](http://127.0.0.1:8000/docs) after starting the server.
+**API docs:** [https://dailytodos.fastapicloud.dev/docs](https://dailytodos.fastapicloud.dev/docs) after starting the server.
 
 ## Notes
 The frontend was generated with AI to provide a simple UI for
