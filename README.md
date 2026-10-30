@@ -2,9 +2,11 @@
 
 A personal task manager with a FastAPI backend and a lightweight HTML, CSS, and JavaScript frontend. Create an account to organise, prioritise, and track your own tasks.
 
+
+
 **Demo:** https://dailytodos.fastapicloud.dev
 
-**API docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) after starting the server.
+**API docs:** [https://dailytodos.fastapicloud.dev/docs](http://127.0.0.1:8000/docs) after starting the server.
 
 ## Features
 
@@ -13,12 +15,12 @@ A personal task manager with a FastAPI backend and a lightweight HTML, CSS, and 
 - User-specific tasks with create, list, edit, complete, and delete operations.
 - Task priority levels, status filters, and text search.
 - Responsive frontend served by the FastAPI application.
-- SQLite for a simple local setup, with SQLModel-supported database URLs configurable through the environment.
+- Supabase used for persistent data storage
 
 ## Tech stack
 
-- **Backend:** Python 3.13+, FastAPI, Pydantic, SQLModel
-- **Database:** SQLite by default; PostgreSQL drivers are included
+- **Backend:** Python 3.13+, FastAPI, Pydantic, SQLModel, Supabase
+- **Database:** PostgreSQL
 - **Authentication:** OAuth2 password flow, JWT, Argon2
 - **Frontend:** HTML, CSS, and vanilla JavaScript
 - **Dependency management:** [uv](https://docs.astral.sh/uv/)
@@ -64,7 +66,7 @@ Before using the app beyond local development, replace `SECRET_KEY` in `.env` wi
 uv run python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-The example configures SQLite and creates `database.db` in the project directory when the app starts. The database file and `.env` are excluded from Git.
+
 
 ### Run the application
 
@@ -109,7 +111,7 @@ Use `/docs` for request schemas, parameters, and interactive API requests.
 
 ## Architecture
 
-The browser uses the same FastAPI origin for the static frontend and JSON API. FastAPI routes authenticate requests, apply user-scoped task access, and use SQLModel sessions to read and write the configured database. The database tables are created from the SQLModel metadata at application startup.
+The browser uses the same FastAPI origin for the static frontend and JSON API. FastAPI routes authenticate requests, apply user-scoped task access, and use SQLModel sessions to read and write to the database. The database tables are created using SQLModel at application startup.
 
 ```text
 Browser (HTML/CSS/JavaScript)
@@ -131,11 +133,4 @@ Run the test suite from the project directory:
 uv run pytest
 ```
 
-There is no GitHub Actions workflow configured in this repository yet.
-
-## Limitations and next steps
-
-- Database tables are created with `SQLModel.metadata.create_all`; schema migrations are not set up.
-- There is no hosted demo or automated CI workflow configured.
-- The frontend stores the access token in browser local storage. Review the authentication and deployment setup before exposing the app publicly.
 - Potential improvements include database migrations, automated CI, and a production deployment with secure token handling.
