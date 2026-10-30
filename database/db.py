@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import Depends
 from config import settings
 from sqlalchemy import event
+from sqlalchemy.engine import make_url
 
 
 todos = {}
@@ -27,12 +28,44 @@ def get_session():
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
-engine = create_engine(settings.SQLITE_URL, connect_args={"check_same_thread": False})
+database_url = settings.DATABASE_URL
+url = make_url(database_url)
+
+connect_args = (
+    {"check_same_thread": False}
+    if url.get_backend_name() == "sqlite"
+    else {}
+)
+
+
+engine = create_engine(
+        database_url, 
+        connect_args=connect_args
+        )
+
+
+# if database_url.startswith("sqlite"):
+#     #for sqlite
+#     engine = create_engine(
+#         database_url, 
+#         connect_args={"check_same_thread": False}
+#         )
+# else:
+#     #for PostregreSQL and other supported databases
+#     engine = create_engine(database_url)
+
+
 
 
 # The hook runs whenever SQLAlchemy opens a SQLite connection, enabling foreign-key checks and ON DELETE CASCADE for that connection.
-@event.listens_for(engine, "connect")
-def enable_sqlite_foreign_keys(connection, _):
-    cursor = connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+def enable_sqlite_foreign_keys(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute("PRAGMA foreign_keys=ON")
+    finally:
+        cursor.close()
+
+
+#only if it's a sqlite connection
+if url.get_backend_name() == "sqlite":
+    event.listen(engine, "connect", enable_sqlite_foreign_keys)
